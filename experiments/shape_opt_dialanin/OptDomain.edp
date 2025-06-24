@@ -309,8 +309,8 @@ while(iter < maxiter){
           real[int] b1 = rhsv1(0,Vhvec);
           real[int] b2 = rhsv2(0,Vhvec);
 
-          v1x[] = Areg^-1 * b1;
-          v2x[] = Areg^-1 * b2;
+          v1x[] = Areg^-1 * b1; // factorizes Areg
+          v2x[] = Areg^-1 * b2; // fast
 
             // Gram-Schmidt (stable version)
             real normv1 = sqrt(dotReg(v1x,v1y,v1x,v1y));
@@ -338,7 +338,7 @@ while(iter < maxiter){
             
             varf rhsv3([ux,uy],[vx,vy]) = int1d(Th,1)(v3boundary*dotN(vx,vy));
             real[int] b3 = rhsv3(0,Vhvec);
-            v3x[] = Areg^-1 * b3;
+            v3x[] = Areg^-1 * b3; // fast
 
             // finish Gram-Schmidt
             real u1dotv3 = dotReg(u1x,u1y,v3x,v3y);
@@ -459,7 +459,7 @@ while(iter < maxiter){
           solve extension([thetax,thetay],[psix,psiy]) = dotReg(thetax,thetay,psix,psiy) -int1d(Th,1)(phi*dotN(psix,psiy));
           normsqTheta = dotReg(thetax,thetay,thetax,thetay);
           normTheta = sqrt(normsqTheta);
-          thetax[] /= max(normThreshold,normTheta); // normalize in H -- up to threshold
+          thetax[] /= max(normThreshold,normTheta); // normalize in H (up to threshold)
           slope = int1d(Th,1)(phi*dotN(thetax,thetay)); // (analytical) directional derivative in the direction theta
     }
 
