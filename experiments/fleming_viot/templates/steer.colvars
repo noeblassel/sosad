@@ -1,0 +1,52 @@
+colvarsTrajFrequency 1
+colvarsRestartFrequency 1000
+
+colvar {
+  name phi
+  width 2.0
+  lowerboundary  -235.0
+  upperboundary  125.0
+  dihedral {
+    wraparound -55
+    oneSiteTotalForce
+    group1 {
+      atomnumbers 5}
+    group2 {
+        atomnumbers 7}
+    group3 {
+      atomnumbers 9}
+    group4 {
+      atomnumbers 15}}
+
+      outputValue
+      }
+
+colvar {
+  name psi
+  width 2.0
+  lowerboundary  -120.0
+  upperboundary   240.0
+  dihedral {
+    wraparound 60.0
+    oneSiteTotalForce
+    group1 {
+      atomnumbers 17}
+    group2 {
+      atomnumbers 15}
+    group3 {
+      atomnumbers 9}
+    group4 {
+      atomnumbers 7}}
+      outputValue
+      }
+
+harmonic {
+      name steer
+      colvars phi psi
+      forceconstant 0.1
+      centers -127.2 123.5
+      targetcenters XXX YYY
+      targetnumsteps NNN
+      outputcenters
+      outputEnergy
+}

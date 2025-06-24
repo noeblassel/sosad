@@ -1,0 +1,55 @@
+sourceTclFile aladim_amber_states.tcl
+
+colvarsTrajFrequency 1
+colvarsRestartFrequency 1
+
+colvar {
+  name phi
+  width 2.0
+  lowerboundary  -235.0
+  upperboundary  125.0
+  dihedral {
+    wraparound -55
+    oneSiteTotalForce
+    group1 {
+      atomnumbers 5}
+    group2 {
+        atomnumbers 7}
+    group3 {
+      atomnumbers 9}
+    group4 {
+      atomnumbers 15}}
+
+      outputValue
+      }
+
+colvar {
+  name psi
+  width 2.0
+  lowerboundary  -120.0
+  upperboundary   240.0
+  dihedral {
+    wraparound 60.0
+    oneSiteTotalForce
+    group1 {
+      atomnumbers 17}
+    group2 {
+      atomnumbers 15}
+    group3 {
+      atomnumbers 9}
+    group4 {
+      atomnumbers 7}}
+      outputValue
+      }
+
+colvar {
+  name inbasin
+  scriptedFunction inbasin
+
+  distance { # dummy component
+    group1 {atomnumbers 1}
+    group2 {atomnumbers 2}
+  }
+
+  outputValue true
+}
