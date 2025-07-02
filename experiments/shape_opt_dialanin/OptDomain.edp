@@ -29,6 +29,7 @@ real[int,int] minima = [[-2.4609142453120048, 0.10471975511965978],
 
 ////
 
+int debug = 0;
 
 int minind = getARGV("--minind",4); // index of the free-energy minimum to optimize around
 int maxiter = getARGV("--maxiter",8000); // maximal number of optimization steps (line searches)
@@ -350,14 +351,15 @@ while(iter < maxiter){
             real normv3perp = sqrt(dotReg(v3x,v3y,v3x,v3y));
             u3x[] = v3x[]/(epsNorm+normv3perp);
 
+            if(debug){
+              cout << "Sanity check : Gram Matrix :" << endl;
 
-            cout << "Sanity check : Gram Matrix :" << endl;
+              cout << "| " << dotReg(u1x,u1y,u1x,u1y) <<" "<<dotReg(u1x,u1y,u2x,u2y) << " "<<dotReg(u1x,u1y,u3x,u3y) <<" |" <<endl;
+              cout << "| " << dotReg(u2x,u2y,u1x,u1y) <<" "<<dotReg(u2x,u2y,u2x,u2y)<<" "<<dotReg(u2x,u2y,u3x,u3y)<<" |" <<endl;
+              cout << "| " << dotReg(u3x,u3y,u1x,u1y) <<" "<<dotReg(u3x,u3y,u2x,u2y)<<" "<<dotReg(u3x,u3y,u3x,u3y)<<" |" <<endl;
 
-            cout << "| " << dotReg(u1x,u1y,u1x,u1y) <<" "<<dotReg(u1x,u1y,u2x,u2y) << " "<<dotReg(u1x,u1y,u3x,u3y) <<" |" <<endl;
-            cout << "| " << dotReg(u2x,u2y,u1x,u1y) <<" "<<dotReg(u2x,u2y,u2x,u2y)<<" "<<dotReg(u2x,u2y,u3x,u3y)<<" |" <<endl;
-            cout << "| " << dotReg(u3x,u3y,u1x,u1y) <<" "<<dotReg(u3x,u3y,u2x,u2y)<<" "<<dotReg(u3x,u3y,u3x,u3y)<<" |" <<endl;
-
-            cout << "Sanity check : u3 normalization :" << normv3perp << endl;
+              cout << "Sanity check : u3 normalization :" << normv3perp << endl;
+            }
 
                 // compute missing coefficients
                 G(2,0) = int1d(Th,1)(v1boundary*dotN(u3x,u3y));
@@ -407,12 +409,14 @@ while(iter < maxiter){
 
           }
           else{ // CIRCLE SEARCH
-            cout << "Sanity check : Gram Matrix :" << endl;
+            if(debug){
+              cout << "Sanity check : Gram Matrix :" << endl;
 
-            cout << "| " << dotReg(u1x,u1y,u1x,u1y) <<" "<<dotReg(u1x,u1y,u2x,u2y) <<" |" <<endl;
-            cout << "| " << dotReg(u2x,u2y,u1x,u1y) <<" "<<dotReg(u2x,u2y,u2x,u2y)<<" |" <<endl;
+              cout << "| " << dotReg(u1x,u1y,u1x,u1y) <<" "<<dotReg(u1x,u1y,u2x,u2y) <<" |" <<endl;
+              cout << "| " << dotReg(u2x,u2y,u1x,u1y) <<" "<<dotReg(u2x,u2y,u2x,u2y)<<" |" <<endl;
 
-            cout << "Sanity check : u2 normalization :" << normv2perp << endl;
+              cout << "Sanity check : u2 normalization :" << normv2perp << endl;
+            }
 
                 // Grid search on circle
 
