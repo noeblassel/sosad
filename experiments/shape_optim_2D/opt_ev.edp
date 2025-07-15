@@ -1,0 +1,151 @@
+include "getARGV.idp"
+
+func string padint(int i, int len){ // pad int to given length with zeros
+  string ss = i;
+  int nn = ss.length; 
+  for(int i=0;i<len-nn;i++)
+    ss = "0"+ss;
+  return ss;
+}
+
+real hmax = getARGV("--hmax",0.01);
+real rmax = getARGV("--rmax",2.0);
+real eps = getARGV("--eps",0.5);
+real beta = getARGV("--beta",2.0);
+real eta = getARGV("--eta",5.0);
+
+cout << hmax << endl;
+int isxi1 = getARGV("--isxi1",1); // true = theta/pi, false = x
+
+cout << isxi1 << endl;
+
+real delta = 0.01;
+
+real amin = -1+delta;
+real amax = 1-delta;
+real bmin = -1+delta;
+real bmax = 1-delta;
+
+real dxi = 0.0002;
+int globit = 0;
+real Jmax = -1;
+int niter = 5;
+
+// cout << dxi << " " << a0 << " " << bmin << " " << bmax << endl;
+
+int nev = getARGV("--nev",4);
+int nboundary = getARGV("--nboundary",100);
+
+ofstream fs("opt_log.out");
+
+fs << "# Iteration a b l1 l2 l3 l4" << endl;
+
+
+
+func V = (x^2-1)^2 + (x^2+y^2-1)^2/eps + 1/sqrt(x^2+y^2);
+func G = 1/(eps/eta+(x^2+y^2-1)^2); // for mesh adaptation
+func mu = exp(-beta * V(x,y));
+real[int] evalues(nev);
+
+func real calcobj(real a,real b){
+        border D1(t=0,rmax){x=0.001+t*cos(pi*a);y=t*sin(pi*a);label=1;}
+        border D2(t=a,b){x=0.001+rmax*cos(pi*t);y=rmax*sin(pi*t);label=2;} // neumann boundary
+        border D3(t=rmax,0){x=0.001+t*cos(pi*b);y=t*sin(pi*b);label=1;}
+
+        mesh Th = buildmesh(D1(nboundary)+D2(2*nboundary)+D3(nboundary),nbvx = 200000);
+
+        Th = adaptmesh(Th,G,nbvx=200000,hmax=hmax,iso=true);
+
+        fespace Vh(Th,P1);
+
+        varf av(u,v) = int2d(Th)((dx(u)*dx(v)+dy(u)*dy(v))*mu/beta) + on(1,u=0);
+        varf bv(u,v) = int2d(Th)(u*v*mu);
+
+        Vh[int] evectors(nev);
+
+        matrix A = av(Vh,Vh,solver=sparsesolver);
+        matrix B = bv(Vh,Vh,solver=sparsesolver);
+
+        int k = EigenValue(A,B,sym=true,sigma=0.0,value=evalues,vector=evectors,tol=1e-15,maxit=0,ncv=16);
+
+
+        real J = evalues[1]/evalues[0];
+        
+
+        // cout << a << " " << b << " "<< J << endl;
+
+        Vh qsd= evectors[0]*mu;
+        plot(qsd,fill=true,wait=false);
+
+        return J;
+}
+
+func real optobj(real aleft,real aright,real bleft, real bright,int n){
+int ibest;
+int jbest;
+
+real objmax = -1;
+
+real deltaa = (aright-aleft)/n;
+real deltab = (bright-bleft)/n;
+
+real a0 = aleft + deltaa/2;
+real b0 = bleft + deltab/2;
+
+for(int i=0;i<n;i++){
+  for(int j=0;j<n;j++){
+    real a = a0 +i*deltaa;
+    real b = b0 + j*deltab;
+    
+    if(a<b){
+      real obj = calcobj(a,b);
+
+      fs << globit << " " << a << " " << b << " " << evalues[0] << " "<< evalues[1] << " "<<evalues[2] << " " << evalues[3] << endl;
+      fs.flush;
+      globit++;
+      if(obj>objmax){
+        objmax = obj;
+        ibest = i;
+        jbest = j;
+      }
+    }
+
+  }
+}
+
+int ileft = max(0,ibest-1);
+int iright = min(n-1,ibest+1);
+
+int jleft = max(0,jbest-1);
+int jright = min(n-1,jbest+1);
+
+amin = a0 +ileft*deltaa;
+amax = a0 + iright*deltaa;
+bmin = b0 + jleft*deltab;
+bmax = b0 + jright*deltab;
+
+return objmax;
+}
+
+
+
+real bestsofar = -1;
+
+real a,b,obj;
+
+for(int it = 0; it < niter; it++){
+  cout << "<<<<<<<<<<<<<<<<<< Iteration : " << it<< " >>>>>>>>>>>>>>>>>>" << endl;
+  cout << amax-amin << " "  <<bmax-bmin << endl;
+  obj = optobj(amin,amax,bmin,bmax,6);
+  cout << "Best objective so far: " << obj << endl;
+  cout << "<<<<<<<<<<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>>>>>>"<<endl;
+
+  it++;
+}
+
+a = (amin+amax)/2;
+b = (bmin+bmax)/2;
+
+obj = calcobj(a,b);
+
+cout << " astar : " << a << " bstar : " << b << " lam1 : "<<evalues[0] << " lam2 : " << evalues[1] << " lam2/lam1 : " << obj << endl;

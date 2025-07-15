@@ -1,0 +1,87 @@
+include "getARGV.idp"
+
+func string padint(int i, int len){ // pad int to given length with zeros
+  string ss = i;
+  int nn = ss.length; 
+  for(int i=0;i<len-nn;i++)
+    ss = "0"+ss;
+  return ss;
+}
+
+real hmax = getARGV("--hmax",0.01);
+real rmax = getARGV("--rmax",2.0);
+real eps = getARGV("--eps",0.5);
+real beta = getARGV("--beta",2.0);
+real eta = getARGV("--eta",5.0);
+
+int isxi1 = getARGV("--isxi1",1); // true = theta/pi, false = x
+
+cout << isxi1 << endl;
+
+real dxidef = (isxi1==1) ? 0.002 : 0.005;
+real dxi = getARGV("--dxi",dxidef);
+real a0def = (isxi1==1) ? -0.5 : -2.0;
+real a0 = getARGV("--a0",a0def);
+real bmindef = (isxi1==1) ? 0.2 : -0.5;
+real bmin = getARGV("--bmin",bmindef);
+real bmaxdef = (isxi1==1) ? 0.8 : 0.5;
+real bmax = getARGV("--bmax",bmaxdef);
+
+cout << dxi << " " << a0 << " " << bmin << " " << bmax << endl;
+
+int nev = getARGV("--nev",4);
+int nboundary = getARGV("--nboundary",100);
+
+
+ofstream output("evs_xi"+(isxi1+1)+"_eps="+eps+"_beta="+beta+".out");
+output << "# Xi_a Xi_b lambda_1 ..." << endl;
+
+
+func V = (x^2-1)^2 + (x^2+y^2-1)^2/eps + 1/sqrt(x^2+y^2);
+func G = 1/(eps/eta+(x^2+y^2-1)^2); // for mesh adaptation
+func mu = exp(-beta * V(x,y));
+
+    for(real b=bmin;b<=bmax+1e-6;b+=dxi){
+        output << a0 <<" " << b <<" ";
+
+        mesh Th = square(10,10); // dummy mesh
+
+        if(isxi1 == 1){
+          border D1(t=0,rmax){x=0.001+t*cos(pi*a0);y=t*sin(pi*a0);label=1;}
+          border D2(t=a0,b){x=0.001+rmax*cos(pi*t);y=rmax*sin(pi*t);label=2;} // neumann boundary
+          border D3(t=rmax,0){x=0.001+t*cos(pi*b);y=t*sin(pi*b);label=1;}
+
+          Th = buildmesh(D1(nboundary)+D2(2*nboundary)+D3(nboundary),nbvx = 200000);
+        }
+        else{
+          border D1(t=-rmax,rmax){x=a0;y=t;label=2;}
+          border D2(t=a0,b){x=t;y=rmax;label=2;}
+          border D3(t=rmax,-rmax){x=b;y=t;label=1;}
+          border D4(t=b,a0){x=t;y=-rmax;label=2;}
+
+          Th = buildmesh(D1(-nboundary)+D2(-nboundary)+D3(-nboundary)+D4(-nboundary),nbvx = 200000);
+        }
+        Th = adaptmesh(Th,G,nbvx=200000,hmax=hmax,iso=true);
+        // Th = adaptmesh(Th,G,nbvx=200000,hmax=hmax,iso=true);
+        fespace Vh(Th,P1);
+
+        varf a(u,v) = int2d(Th)((dx(u)*dx(v)+dy(u)*dy(v))*mu/beta) + on(1,u=0);
+        varf b(u,v) = int2d(Th)(u*v*mu);
+
+        Vh[int] evectors(nev);
+        real[int] evalues(nev);
+
+        matrix A = a(Vh,Vh,solver=sparsesolver);
+        matrix B = b(Vh,Vh,solver=sparsesolver);
+
+        int k = EigenValue(A,B,sym=true,sigma=0.0,value=evalues,vector=evectors,tol=1e-15,maxit=0,ncv=16);
+
+
+        for(int i=0;i<nev;i++) output << evalues[i] << " ";
+        output << endl;
+
+        Vh qsd= evectors[0]*mu;
+        plot(qsd,fill=true,wait=false);
+
+        output.flush;
+    }
